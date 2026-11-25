@@ -1,0 +1,31 @@
+@model SaleFormViewModel
+@{
+    ViewData["Title"] = $"Edit sale #{Model.SaleId}";
+}
+
+<div class="page-title">
+    <h1>Edit sale #@(Model.SaleId)</h1>
+    <a asp-action="Details" asp-route-id="@Model.SaleId" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to details</a>
+</div>
+
+<div class="row">
+    <div class="col-lg-9">
+        <div class="card">
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Stock is updated automatically when you change quantities, add or remove products.
+                </div>
+
+                <form asp-action="Edit" asp-route-id="@Model.SaleId" method="post">
+                    <input type="hidden" asp-for="SaleId" />
+                    <partial name="_SaleForm" />
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Save changes</button>
+                        <a asp-action="Details" asp-route-id="@Model.SaleId" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

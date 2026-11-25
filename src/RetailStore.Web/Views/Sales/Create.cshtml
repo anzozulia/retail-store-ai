@@ -1,0 +1,26 @@
+@model SaleFormViewModel
+@{
+    ViewData["Title"] = "New sale";
+}
+
+<div class="page-title">
+    <h1>New sale</h1>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to list</a>
+</div>
+
+<div class="row">
+    <div class="col-lg-9">
+        <div class="card">
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    <partial name="_SaleForm" />
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Save sale</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

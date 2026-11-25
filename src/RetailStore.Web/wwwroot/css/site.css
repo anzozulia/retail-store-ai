@@ -1,0 +1,49 @@
+body {
+  background-color: #f4f6f8;
+}
+
+.card {
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+  background-color: #fff;
+  font-weight: 700;
+}
+
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.kpi-label {
+  color: #7b8a8b;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.chart-box {
+  position: relative;
+  height: 300px;
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.page-title h1 {
+  font-size: 1.75rem;
+  margin: 0;
+}

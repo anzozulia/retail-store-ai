@@ -1,0 +1,83 @@
+@model List<Product>
+@{
+    ViewData["Title"] = "Products";
+    var categories = (SelectList)ViewData["Categories"]!;
+}
+
+<div class="page-title">
+    <h1>Products</h1>
+    <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Add product</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form asp-action="Index" method="get" class="row g-2 align-items-end">
+            <div class="col-md">
+                <label for="search" class="form-label">Name</label>
+                <input type="text" id="search" name="search" value="@ViewData["Search"]" class="form-control" placeholder="Search by name" />
+            </div>
+            <div class="col-md-4">
+                <label for="categoryId" class="form-label">Category</label>
+                <select id="categoryId" name="categoryId" asp-items="categories" class="form-select">
+                    <option value="">All categories</option>
+                </select>
+            </div>
+            <div class="col-md-auto d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Search</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Product list</span>
+        <span class="text-muted small fw-normal">Showing @Model.Count @(Model.Count == 1 ? "product" : "products")</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Supplier</th>
+                    <th class="text-end">Price</th>
+                    <th class="text-end">Stock</th>
+                    <th class="text-end">Min stock</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var product in Model)
+                {
+                    <tr>
+                        <td><a asp-action="Details" asp-route-id="@product.ProductId">@product.Name</a></td>
+                        <td>@product.Category.Name</td>
+                        <td>@product.Supplier.Name</td>
+                        <td class="text-end">₴@(product.UnitPrice.ToString("N2"))</td>
+                        <td class="text-end">
+                            @if (product.StockQuantity <= product.MinStock)
+                            {
+                                <span class="badge text-bg-danger me-1">Low stock</span>
+                            }
+                            @product.StockQuantity
+                        </td>
+                        <td class="text-end">@product.MinStock</td>
+                        <td class="text-end text-nowrap">
+                            <a asp-action="Details" asp-route-id="@product.ProductId" class="btn btn-sm btn-outline-secondary" title="Details"><i class="bi bi-eye"></i></a>
+                            <a asp-action="Edit" asp-route-id="@product.ProductId" class="btn btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <a asp-action="Delete" asp-route-id="@product.ProductId" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                        </td>
+                    </tr>
+                }
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No products found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

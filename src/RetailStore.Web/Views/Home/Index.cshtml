@@ -1,0 +1,190 @@
+﻿@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="page-title">
+    <div>
+        <h1>Dashboard</h1>
+        @if (Model.FirstSaleDate.HasValue && Model.LastSaleDate.HasValue)
+        {
+            <div class="text-muted">Sales from @Model.FirstSaleDate.Value.ToString("yyyy-MM-dd") to @Model.LastSaleDate.Value.ToString("yyyy-MM-dd")</div>
+        }
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="kpi-label">Revenue</span>
+                    <i class="bi bi-cash-stack fs-4 text-primary"></i>
+                </div>
+                <div class="kpi-value">₴@(Model.Revenue.ToString("N2"))</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="kpi-label">Receipts</span>
+                    <i class="bi bi-receipt fs-4 text-info"></i>
+                </div>
+                <div class="kpi-value">@Model.Receipts.ToString("N0")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="kpi-label">Average receipt</span>
+                    <i class="bi bi-basket fs-4 text-success"></i>
+                </div>
+                <div class="kpi-value">₴@(Model.AverageReceipt.ToString("N2"))</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="kpi-label">Low stock products</span>
+                    <i class="bi bi-exclamation-triangle fs-4 text-danger"></i>
+                </div>
+                <div class="kpi-value @(Model.LowStockCount > 0 ? "text-danger" : "")">@Model.LowStockCount</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">Weekly revenue</div>
+    <div class="card-body">
+        <div class="chart-box">
+            <canvas id="weeklyChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header">Top 5 products by revenue</div>
+            <div class="card-body">
+                <div class="chart-box">
+                    <canvas id="topProductsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header">Revenue by category</div>
+            <div class="card-body">
+                <div class="chart-box">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Low stock products</div>
+    @if (Model.LowStockProducts.Count == 0)
+    {
+        <div class="card-body text-muted">All products are above the minimum stock.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th class="text-end">Stock</th>
+                        <th class="text-end">Min stock</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var product in Model.LowStockProducts)
+                    {
+                        <tr>
+                            <td><a asp-controller="Products" asp-action="Details" asp-route-id="@product.ProductId">@product.Name</a></td>
+                            <td>@product.Category.Name</td>
+                            <td class="text-end text-danger fw-bold">@product.StockQuantity</td>
+                            <td class="text-end">@product.MinStock</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/lib/chart.js/chart.umd.min.js"></script>
+    <script>
+        const palette = ['#2C3E50', '#18BC9C', '#3498DB', '#F39C12', '#E74C3C', '#95A5A6'];
+
+        new Chart(document.getElementById('weeklyChart'), {
+            type: 'line',
+            data: {
+                labels: @Json.Serialize(Model.WeekLabels),
+                datasets: [{
+                    label: 'Revenue, ₴',
+                    data: @Json.Serialize(Model.WeekRevenue),
+                    borderColor: '#2C3E50',
+                    backgroundColor: 'rgba(44, 62, 80, 0.15)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        new Chart(document.getElementById('topProductsChart'), {
+            type: 'bar',
+            data: {
+                labels: @Json.Serialize(Model.TopProductNames),
+                datasets: [{
+                    label: 'Revenue, ₴',
+                    data: @Json.Serialize(Model.TopProductRevenue),
+                    backgroundColor: '#18BC9C'
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        new Chart(document.getElementById('categoryChart'), {
+            type: 'doughnut',
+            data: {
+                labels: @Json.Serialize(Model.CategoryNames),
+                datasets: [{
+                    label: 'Revenue, ₴',
+                    data: @Json.Serialize(Model.CategoryRevenue),
+                    backgroundColor: palette
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    </script>
+}

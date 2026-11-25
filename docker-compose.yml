@@ -1,0 +1,66 @@
+name: retailstore
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD}
+      MSSQL_MEMORY_LIMIT_MB: "2048"
+      TZ: Europe/Kyiv
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: SQLCMDPASSWORD="$$MSSQL_SA_PASSWORD" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -Q "SELECT 1"
+      interval: 10s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      SA_PASSWORD: ${SA_PASSWORD}
+      APP_PASSWORD: ${APP_PASSWORD}
+      TZ: Europe/Kyiv
+    volumes:
+      - ./db:/db:ro
+    entrypoint: ["bash", "/db/init-db.sh"]
+    restart: "no"
+
+  app:
+    build: .
+    environment:
+      ConnectionStrings__RetailStore: Server=db;Database=RetailStoreDb;User Id=retail_app;Password=${APP_PASSWORD};TrustServerCertificate=True
+      TZ: Europe/Kyiv
+      ASPNETCORE_ENVIRONMENT: Production
+    volumes:
+      - dp-keys:/home/app/.aspnet/DataProtection-Keys
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  dp-keys:
+  mssql-data:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,47 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        run: dotnet build src/RetailStore.Web/RetailStore.Web.csproj -c Release
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy
+    steps:
+      - name: Deploy to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf 'SA_PASSWORD=%s\nAPP_PASSWORD=%s\n' "$SA_PASSWORD" "$APP_PASSWORD" | ssh "$SSH_USER@$SSH_HOST" 'umask 077 && cat > /opt/retailstore/.env'
+          ssh "$SSH_USER@$SSH_HOST" 'cd /opt/retailstore && git fetch --quiet origin main && git reset --hard origin/main && docker compose up -d --build --remove-orphans && docker image prune -f'

@@ -1,0 +1,53 @@
+@model SaleFormViewModel
+@{
+    var customers = (IEnumerable<SelectListItem>)ViewData["Customers"]!;
+    var products = (IEnumerable<SelectListItem>)ViewData["Products"]!;
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3"></div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <label asp-for="SaleDate" class="form-label">Date and time</label>
+        <input asp-for="SaleDate" asp-format="{0:yyyy-MM-ddTHH:mm}" class="form-control" required />
+        <span asp-validation-for="SaleDate" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="CustomerId" class="form-label">Customer</label>
+        <select asp-for="CustomerId" asp-items="customers" class="form-select">
+            <option value="">Walk-in customer</option>
+        </select>
+        <span asp-validation-for="CustomerId" class="text-danger small"></span>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table align-middle mb-2">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                <th>Product</th>
+                <th class="w-25">Quantity</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < Model.Lines.Count; i++)
+            {
+                <tr>
+                    <td class="text-muted">@(i + 1)</td>
+                    <td>
+                        <select asp-for="Lines[i].ProductId" asp-items="products" class="form-select">
+                            <option value="">Select product</option>
+                        </select>
+                        <span asp-validation-for="Lines[i].ProductId" class="text-danger small"></span>
+                    </td>
+                    <td>
+                        <input asp-for="Lines[i].Quantity" type="number" min="1" max="1000" class="form-control" />
+                        <span asp-validation-for="Lines[i].Quantity" class="text-danger small"></span>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+<div class="form-text"><i class="bi bi-info-circle"></i> Empty rows are ignored.</div>

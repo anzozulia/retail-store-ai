@@ -1,0 +1,165 @@
+@model ForecastViewModel
+@{
+    ViewData["Title"] = "Demand forecast";
+}
+
+<div class="page-title">
+    <h1>Demand forecast</h1>
+    <form asp-action="Recalculate" method="post">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-repeat"></i> Recalculate</button>
+    </form>
+</div>
+
+@if (Model.Rows.Count == 0)
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No forecast yet. Click Recalculate to build it.
+    </div>
+}
+else
+{
+    @if (Model.LastSaleDate > Model.CalculatedAt)
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> There are new sales since the last calculation. Click Recalculate to update the forecast and recommended orders.
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <p class="mb-1">
+                @(Model.WindowWeeks)-week moving average of weekly sales.
+                Forecast for the week of <strong>@Model.TargetWeek.ToString("MMM d, yyyy")</strong>,
+                based on the @Model.WindowWeeks weeks up to @Model.TargetWeek.AddDays(-1).ToString("MMM d, yyyy").
+                Calculated at @Model.CalculatedAt.ToString("yyyy-MM-dd HH:mm").
+            </p>
+            <p class="mb-0 text-muted small">Recommended order = forecast × (7 + lead time) / 7 + min stock − stock, rounded up, not below zero.</p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">Recommended orders</div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th class="text-end">Lead time (days)</th>
+                        <th class="text-end">Stock</th>
+                        <th class="text-end">Min stock</th>
+                        <th class="text-end">Forecast (units/week)</th>
+                        <th class="text-end">Recommended order</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr>
+                            <td><a asp-controller="Products" asp-action="Details" asp-route-id="@row.ProductId">@row.Product.Name</a></td>
+                            <td>@row.Product.Category.Name</td>
+                            <td class="text-end">@row.Product.Supplier.LeadTimeDays</td>
+                            <td class="text-end">
+                                @if (row.Product.StockQuantity <= row.Product.MinStock)
+                                {
+                                    <span class="badge text-bg-danger me-1">Low stock</span>
+                                }
+                                @row.Product.StockQuantity
+                            </td>
+                            <td class="text-end">@row.Product.MinStock</td>
+                            <td class="text-end">@row.ForecastQty.ToString("0.##")</td>
+                            <td class="text-end @(row.RecommendedOrderQty > 0 ? "fw-bold" : "")">@row.RecommendedOrderQty</td>
+                            <td class="text-end">
+                                @if (row.RecommendedOrderQty > 0)
+                                {
+                                    <form asp-action="Restock" method="post" class="d-inline"
+                                          data-confirm="Receive @row.RecommendedOrderQty units of @row.Product.Name?"
+                                          onsubmit="return confirm(this.dataset.confirm)">
+                                        <input type="hidden" name="productId" value="@row.ProductId" />
+                                        <input type="hidden" name="quantity" value="@row.RecommendedOrderQty" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success text-nowrap"><i class="bi bi-box-arrow-in-down"></i> Receive</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span>Forecast vs actual</span>
+            <form asp-action="Index" method="get">
+                <select name="productId" class="form-select form-select-sm" aria-label="Product" asp-items="Model.Products" onchange="this.form.submit()"></select>
+            </form>
+        </div>
+        <div class="card-body">
+            @if (Model.Mae.HasValue)
+            {
+                <p class="mb-1">
+                    Mean absolute error (MAE) over the last @Model.MaeWeeks weeks:
+                    <strong>@Model.Mae.Value.ToString("0.##") units/week</strong>
+                    @if (Model.MaePercent.HasValue)
+                    {
+                        <span>(≈ @Model.MaePercent.Value.ToString("0")% of average weekly sales)</span>
+                    }
+                </p>
+            }
+            <p class="text-muted small">
+                @if (Model.ActualValues.LastOrDefault() == null)
+                {
+                    <span>The target week has no actual sales yet.</span>
+                }
+                else
+                {
+                    <span>The target week is not over yet, so its actual sales are partial.</span>
+                }
+            </p>
+            <div class="chart-box">
+                <canvas id="forecastChart"></canvas>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    @if (Model.Rows.Count > 0)
+    {
+        <script src="~/lib/chart.js/chart.umd.min.js"></script>
+        <script>
+            new Chart(document.getElementById('forecastChart'), {
+                type: 'bar',
+                data: {
+                    labels: @Json.Serialize(Model.ChartLabels),
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Actual',
+                            data: @Json.Serialize(Model.ActualValues),
+                            backgroundColor: '#3498DB',
+                            order: 2
+                        },
+                        {
+                            type: 'line',
+                            label: 'Forecast',
+                            data: @Json.Serialize(Model.ForecastValues),
+                            borderColor: '#F39C12',
+                            backgroundColor: '#F39C12',
+                            pointRadius: 4,
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        </script>
+    }
+}

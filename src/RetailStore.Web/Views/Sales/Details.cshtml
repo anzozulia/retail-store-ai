@@ -1,0 +1,81 @@
+@model Sale
+@{
+    ViewData["Title"] = $"Sale #{Model.SaleId}";
+    var total = Model.SaleItems.Sum(i => i.Quantity * i.UnitPrice);
+}
+
+<div class="page-title">
+    <h1>Sale #@(Model.SaleId)</h1>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.SaleId" class="btn btn-primary"><i class="bi bi-pencil"></i> Edit</a>
+        <a asp-action="Delete" asp-route-id="@Model.SaleId" class="btn btn-outline-danger"><i class="bi bi-trash"></i> Delete</a>
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to list</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">Receipt</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-5">Receipt #</dt>
+                    <dd class="col-7">@Model.SaleId</dd>
+
+                    <dt class="col-5">Date</dt>
+                    <dd class="col-7">@Model.SaleDate.ToString("yyyy-MM-dd HH:mm")</dd>
+
+                    <dt class="col-5">Customer</dt>
+                    <dd class="col-7">
+                        @if (Model.Customer != null)
+                        {
+                            @Model.Customer.Name
+                        }
+                        else
+                        {
+                            <span class="text-muted">Walk-in</span>
+                        }
+                    </dd>
+
+                    <dt class="col-5">Total</dt>
+                    <dd class="col-7 mb-0 fw-bold">₴@(total.ToString("N2"))</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header">Lines</div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th class="text-end">Quantity</th>
+                            <th class="text-end">Unit price</th>
+                            <th class="text-end">Sum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.SaleItems.OrderBy(i => i.SaleItemId))
+                        {
+                            <tr>
+                                <td><a asp-controller="Products" asp-action="Details" asp-route-id="@item.ProductId">@item.Product.Name</a></td>
+                                <td class="text-end">@item.Quantity</td>
+                                <td class="text-end">₴@(item.UnitPrice.ToString("N2"))</td>
+                                <td class="text-end">₴@((item.Quantity * item.UnitPrice).ToString("N2"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-bold">
+                            <td colspan="3" class="text-end">Total</td>
+                            <td class="text-end">₴@(total.ToString("N2"))</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
