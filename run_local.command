@@ -12,14 +12,16 @@ source .env
 set +a
 
 NAME=retailstore-mssql
-if docker ps -a --format '{{.Names}}' | grep -q "^$NAME$"; then
-    docker start $NAME > /dev/null
-else
-    docker run --platform linux/amd64 -d --name $NAME -p 14330:1433 \
-        -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD="$SA_PASSWORD" \
-        -e MSSQL_MEMORY_LIMIT_MB=2048 -e TZ=Europe/Kyiv \
-        -v "$PWD/db:/db:ro" -v retailstore-mssql-data:/var/opt/mssql \
-        mcr.microsoft.com/mssql/server:2022-latest > /dev/null
+if ! docker ps --format '{{.Names}}' | grep -q "^$NAME$"; then
+    if docker ps -a --format '{{.Names}}' | grep -q "^$NAME$"; then
+        docker start $NAME > /dev/null
+    else
+        docker run --platform linux/amd64 -d --name $NAME -p 14330:1433 \
+            -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD="$SA_PASSWORD" \
+            -e MSSQL_MEMORY_LIMIT_MB=2048 -e TZ=Europe/Kyiv \
+            -v "$PWD/db:/db:ro" -v retailstore-mssql-data:/var/opt/mssql \
+            mcr.microsoft.com/mssql/server:2022-latest > /dev/null
+    fi
 fi
 
 docker exec -e SA_PASSWORD -e APP_PASSWORD $NAME bash /db/init-db.sh "$@" || exit 1
